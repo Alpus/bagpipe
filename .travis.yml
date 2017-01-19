@@ -12,4 +12,4 @@ install:
   - docker build -t dockerfile .
 
 script:
-  - docker run -d -p 127.0.0.1:80:4567 --name bagpipe_test dockerfile pytest
+  - docker run dockerfile pytest

@@ -115,7 +115,7 @@ class Dataset(luigi.Task, metaclass=ABCMeta):
         rates = train_rate, validation_rate, test_rate
         assert sum(rates) == 1, "Sum of rates need to be equals 1."
 
-        main_generator = self.get_all_sample()
+        main_generator = self.get_all_sample(shuffle_seed=shuffle_seed)
         def sample_generator(begin, end):
             for number, sample_object in enumerate(main_generator):
                 if number == end:
