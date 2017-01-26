@@ -1,3 +1,4 @@
 luigi
 numpy
 pytest
+tensorflow-gpu

@@ -1,7 +1,13 @@
 import os
+from pipeline.settings import mkdir
 
-SAMPLE_FILE_SUFFIX = '.sample'
-SAMPLE_SUMMARY_FILE_NAME = '.summary'
+MAIN_FOLDER_PATH = "/var/lib/bagpipe"
+mkdir(MAIN_FOLDER_PATH)
+DATA_FOLDER_PATH = os.path.join("/var/lib/bagpipe", 'data')
+mkdir(DATA_FOLDER_PATH)
+TFRECORDS_FOLDER_PATH = os.path.join("/var/lib/bagpipe", 'tfrecords')
+mkdir(TFRECORDS_FOLDER_PATH)
 
-MAIN_FOLDER = "/var/lib/bagpipe"
-DATASETS_FOLDER = os.path.join("/var/lib/bagpipe", 'datasets')
+STATUS_FILE_NAME = '.storage_status'
+STATUS_FIELD_NAME = '.status'
+STATUS_OK = 'OK'
