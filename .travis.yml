@@ -1,0 +1,15 @@
+sudo: required
+
+services:
+  - docker
+
+language: python
+
+python:
+  - "3.6"
+
+install:
+  - docker build -t dockerfile .
+
+script:
+  - docker run dockerfile pytest
