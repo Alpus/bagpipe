@@ -9,7 +9,7 @@ python:
   - "3.6"
 
 install:
-  - docker build -t dockerfile .
+  - nvidia-docker build -t dockerfile .
 
 script:
-  - docker run dockerfile pytest
+  - docker run -p 8082:8082 -it dockerfile /bin/bash -c "luigid --background --pidfile /var/log/bagpipe/pidfile --logdir /var/log/bagpipe --state-path /var/log/bagpipe/statefile; pytest"

@@ -46,18 +46,18 @@ class DataProcessor(ForceableTask):
         pass
 
     def output(self):
-        return StorageTarget(folder_name=self.__class__.__name__)
+        return StorageTarget(storage_name=self.__class__.__name__)
 
     def run(self):
-        self.process_data(self.output().folder_path)
-        self.mark_storage_as_filled()
+        self.process_data(self.output().data_folder_path)
+        self.output().mark_as_filled()
 
 
 class TFRecordsMaker(ForceableTask):
     """Class that transform raw data to tfrecords.
 
     Note:
-        User must define methods "get_labeled_file_groups", "make_serialized_tf_record".
+        User must define methods "make_labeled_file_groups", "make_tf_example".
 
     Args:
         block_size (:obj:`int`, optional): sample block size.
@@ -69,7 +69,7 @@ class TFRecordsMaker(ForceableTask):
     block_size = luigi.IntParameter(significant=False)
 
     @abstractmethod
-    def get_labeled_file_groups(self):
+    def make_labeled_file_groups(self):
         """Method must return dict with labeled sample files.
 
         Example:
@@ -82,20 +82,8 @@ class TFRecordsMaker(ForceableTask):
         pass
 
     @abstractmethod
-    def make_serialized_tf_record(self, files):
-        """Method must return record that will be passed into TFRecordWriter.write()
-
-
-        Example:
-            ...
-            features = tf.train.Features(
-                feature={
-                    'image': tf.train.Feature(float_list=image_feature),
-                }
-            )
-            example = tf.train.Example(features=features)
-            return example.SerializeToString()
-        """
+    def make_tf_example(self, files):
+        """Method must return tf.train.Example instance"""
 
         pass
 
@@ -104,8 +92,8 @@ class TFRecordsMaker(ForceableTask):
 
         writer = tf.python_io.TFRecordWriter(path_to_save)
         for files in block:
-            record = self.make_serialized_tf_record(files)
-            writer.write(record)
+            example = self.make_tf_example(files)
+            writer.write(example.SerializeToString())
 
     def _get_block_file_name(self, label, number):
         return 'block_{label}_{number}.tfrecords'.format(label=label, number=number)
@@ -114,7 +102,7 @@ class TFRecordsMaker(ForceableTask):
         return [
             (
                 files[number:number + self.block_size],
-                os.path.join(self.storagefolder_path, self._get_block_file_name(label, number))
+                os.path.join(self.output().data_folder_path, self._get_block_file_name(label, number))
             )
             for number in range(0, len(files), self.block_size)
         ]
@@ -122,7 +110,7 @@ class TFRecordsMaker(ForceableTask):
     def _write_tf_records(self):
         """Parallel write tf records by groups"""
 
-        labeled_file_groups = self.get_labeled_file_groups()
+        labeled_file_groups = self.make_labeled_file_groups()
         for label, file_group in labeled_file_groups.items():
             with Pool() as pool:
                 blocks_and_paths_to_save = self._get_blocks_and_paths_to_save(label, file_group)
@@ -135,11 +123,11 @@ class TFRecordsMaker(ForceableTask):
             self.output().add_sample_group_paths(label, only_paths_to_save)
 
     def output(self):
-        return TFRecordsSampleTarget(folder_name=self.__class__.__name__)
+        return TFRecordsSampleTarget(storage_name=self.__class__.__name__)
 
     def run(self):
         self._write_tf_records()
-        self.mark_storage_as_filled()
+        self.output().mark_as_filled()
 
 
 class TFModel(ForceableTask):

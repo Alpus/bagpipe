@@ -1,6 +1,5 @@
 import luigi
 import os
-import pickle
 import shutil
 import tensorflow as tf
 
@@ -24,29 +23,40 @@ class CleanableTarget(luigi.Target, metaclass=ABCMeta):
 
 
 class StorageTarget(CleanableTarget):
+    """Class for storage
+
+    It can contain any files in folder and any info about this folder if info file.
+
+    Attributes:
+        data_folder_path (str): Path to folder where storage contain files.
+    """
+
     INFO_FILE_NAME = '.storage_info'
     STATUS_FIELD_NAME = '.status'
     STATUS_OK = 'OK'
 
-    def __init__(self, folder_name):
-        self.folder_path = os.path.join(settings.DATA_FOLDER_PATH, folder_name)
-        helpers.mkdir_if_not_exists(self.folder_path)
+    def __init__(self, storage_name):
+        self._storage_name = storage_name
+        self._root_folder_path = os.path.join(settings.DATA_FOLDER_PATH, self._storage_name)
+        helpers.mkdir_if_not_exists(self._root_folder_path)
 
-        self._info_file_path = os.path.join(self.folder_path, self.INFO_FILE_NAME)
-        self._info_file = open(self._info_file_path, '+b')
-        self._init_info_file()
+        self.data_folder_path = os.path.join(self._root_folder_path, 'data')
+        helpers.mkdir_if_not_exists(self.data_folder_path)
+
+        self._info_file_path = os.path.join(self._root_folder_path, self.INFO_FILE_NAME)
+        self.info_pickler = helpers.FilePickler(self._info_file_path, init_content={})
 
     def write_flag(self, key, value):
         """Write key - value pair into info file"""
 
-        info = pickle.load(self._info_file)
+        info = self.info_pickler.load()
         info[key] = value
-        pickle.dump(info, self._info_file)
+        self.info_pickler.dump(info)
 
     def read_flag(self, key):
         """Load value for key from info file"""
 
-        info = pickle.load(self._info_file)
+        info = self.info_pickler.load()
         return info.get(key)
 
     def mark_as_filled(self):
@@ -58,14 +68,7 @@ class StorageTarget(CleanableTarget):
         return self._is_filled()
 
     def clean_up(self):
-        shutil.rmtree(self.folder_path)
-
-    def _is_info_file_exists(self):
-        return os.path.isfile(self._info_file)
-
-    def _init_info_file(self):
-        if not self._is_info_file_exists():
-            pickle.dump(dict(), self._info_file)
+        shutil.rmtree(self._root_folder_path)
 
     def _is_filled(self):
         return self.read_flag(self.STATUS_FIELD_NAME) == self.STATUS_OK

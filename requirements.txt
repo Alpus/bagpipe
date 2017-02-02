@@ -2,3 +2,5 @@ luigi
 numpy
 pytest
 tensorflow-gpu
+numpy
+SQLAlchemy
